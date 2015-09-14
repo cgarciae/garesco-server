@@ -1,0 +1,26 @@
+data:
+  image: busybox
+  volumes:
+    - /data:/data
+    - /c/Users/Cristian/Documents/Github/garesco-server:/server
+
+db:
+  image: postgres
+  volumes_from:
+    - data
+  ports:
+    - "5432:5432"
+  environment:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    PGDATA: /data/pgdata
+
+server:
+  image: cgarciae/phoenix-dev:1.0.0
+  volumes_from:
+    - data
+  links:
+    - db
+  ports:
+    - "4000:4000"
+  command: bash -c "cd /server && mix deps.get && mix phoenix.server"
