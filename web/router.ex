@@ -19,6 +19,7 @@ defmodule GarescoServer.Router do
     get "/", PageController, :index
     
     resources "/files", FileController
+    get "/files/:id/raw", FileController, :raw
   end
 
   # Other scopes may use custom stacks.

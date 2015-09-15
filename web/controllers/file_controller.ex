@@ -7,21 +7,25 @@ defmodule GarescoServer.FileController do
 
   plug :scrub_params, "file" when action in [:create, :update]
 
-  def index(conn, _params) do
-    files = FileServices.all %{repo: Repo}
+  def action(conn, _opts) do
+    context = Application.get_env(:garesco_server, :di)
+    apply(__MODULE__, action_name(conn), [conn, conn.params, context])
+  end
+
+  def index(conn, _params, %{file_services: file_services} = context) do
+    files = file_services.all(context)
     render(conn, "index.html", files: files)
   end
 
-  def new(conn, _params) do
-    changeset = File.changeset(%File{})
+  def new(conn, _params, %{file_services: file_services} = context) do
+    changeset = file_services.new_changeset()
     render(conn, "new.html", changeset: changeset)
   end
 
-  def create(conn, %{"file" => file_params}) do
-    changeset = File.changeset(%File{}, file_params)
+  def create(conn, %{"file" => file}, %{file_services: file_services} = context) do
 
-    case Repo.insert(changeset) do
-      {:ok, _file} ->
+    case file_services.add(file, context) do
+      {:ok, _} ->
         conn
         |> put_flash(:info, "File created successfully.")
         |> redirect(to: file_path(conn, :index))
@@ -30,40 +34,42 @@ defmodule GarescoServer.FileController do
     end
   end
 
-  def show(conn, %{"id" => id}) do
-    file = Repo.get!(File, id)
+  def show(conn, %{"id" => id}, %{file_services: file_services} = context) do
+    file = file_services.get!(id, context)
     render(conn, "show.html", file: file)
   end
 
-  def edit(conn, %{"id" => id}) do
-    file = Repo.get!(File, id)
+  def edit(conn, %{"id" => id}, %{file_services: file_services} = context) do
+    file = file_services.get!(id, context)
     changeset = File.changeset(file)
     render(conn, "edit.html", file: file, changeset: changeset)
   end
 
-  def update(conn, %{"id" => id, "file" => file_params}) do
-    file = Repo.get!(File, id)
-    changeset = File.changeset(file, file_params)
+  def update(conn, %{"id" => id, "file" => file_params}, %{file_services: file_services} = context) do
 
-    case Repo.update(changeset) do
-      {:ok, file} ->
+    case file_services.update(id, file_params, context) do
+      {_, {:ok, file}} ->
         conn
         |> put_flash(:info, "File updated successfully.")
         |> redirect(to: file_path(conn, :show, file))
-      {:error, changeset} ->
+      {file, {:error, changeset}} ->
         render(conn, "edit.html", file: file, changeset: changeset)
     end
   end
 
-  def delete(conn, %{"id" => id}) do
-    file = Repo.get!(File, id)
+  def delete(conn, %{"id" => id}, %{file_services: file_services} = context) do
 
     # Here we use delete! (with a bang) because we expect
     # it to always work (and if it does not, it will raise).
-    Repo.delete!(file)
+    file_services.delete!(id, context)
 
     conn
     |> put_flash(:info, "File deleted successfully.")
     |> redirect(to: file_path(conn, :index))
   end
+
+  def raw(conn, %{"id" => id}, %{file_services: file_services} = context) do
+    file_services.raw(conn, id, context)
+  end
+  
 end

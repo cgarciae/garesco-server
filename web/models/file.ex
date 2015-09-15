@@ -9,8 +9,8 @@ defmodule GarescoServer.File do
     timestamps
   end
 
-  @required_fields ~w(filename content_type version)
-  @optional_fields ~w()
+  @required_fields ~w(version)
+  @optional_fields ~w(filename content_type)
 
   @doc """
   Creates a changeset based on the `model` and `params`.

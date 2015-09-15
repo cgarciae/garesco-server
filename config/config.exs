@@ -15,6 +15,14 @@ config :garesco_server, GarescoServer.Repo,
   port: 5432,
   pool_size: 10
 
+config :garesco_server, :di, %{
+  repo: GarescoServer.Repo,
+  file_services: GarescoServer.FileServices,
+  plug_conn: Plug.Conn
+}
+
+config :garesco_server, :files_path, "/files" 
+
 # Configures the endpoint
 config :garesco_server, GarescoServer.Endpoint,
   url: [host: "localhost"],
