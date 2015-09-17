@@ -31,6 +31,10 @@ defmodule GarescoServer.FileController do
         |> redirect(to: file_path(conn, :index))
       {:error, changeset} ->
         render(conn, "new.html", changeset: changeset)
+      {:error_msg, changeset, msg} ->
+        conn
+        |> put_flash(:info, msg)
+        |> render("new.html", changeset: changeset)
     end
   end
 

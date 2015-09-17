@@ -1,6 +1,8 @@
 defmodule GarescoServer.File do
   use GarescoServer.Web, :model
 
+  @primary_key {:file_id, Ecto.UUID, autogenerate: true}
+  @derive {Phoenix.Param, key: :file_id}
   schema "files" do
     field :filename, :string
     field :content_type, :string

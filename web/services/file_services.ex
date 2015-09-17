@@ -10,13 +10,13 @@ defmodule GarescoServer.FileServices do
     FileDB.changeset(%FileDB{})
   end
 
-  def add(%{"photo" => photo, "version" => version} = file_params, %{repo: repo}) do
-    
-    files_path = Application.get_env(:garesco_server, :files_path)
-    
+  def add(%{"photo" => photo, "version" => version} = file_params, 
+    %{repo: repo}) 
+    when not is_nil(version) do
+
     params = photo
-      |> Map.take(["filename", "content_type"])
-      |> Map.put("version", version)
+      |> Map.take([:filename, :content_type])
+      |> Map.put(:version, version)
 
     result = %FileDB{}
       |> FileDB.changeset(params)
@@ -24,14 +24,26 @@ defmodule GarescoServer.FileServices do
 
     case result do
       {:ok, file} ->
-        File.copy!(photo.path, "#{files_path}/#{file.id}")
+        save_file(photo, file.file_id)
+        _ -> 0
     end
 
     result
   end
 
+  
+  def add(params, _) do
+
+    changeset = %FileDB{}
+      |> FileDB.changeset(params)
+
+    {:error_msg, changeset, "Version of photo missing"}
+  end
+
   def get!(id, %{repo: repo}) do
-    repo.get!(FileDB, id)
+    file = repo.get!(FileDB, id)
+    IO.inspect(file)
+    file
   end
 
   def delete!(id, %{repo: repo} = context) do
@@ -41,29 +53,46 @@ defmodule GarescoServer.FileServices do
     files_path = Application.get_env(:garesco_server, :files_path)
     File.rm!("#{files_path}/#{id}")
   end
-  
 
-  def update(id, file_params, %{repo: repo} = context) do
-    file = get!(id, context)
 
-    params = case file_params do
-      %{"photo" => photo, "version" => version} ->
-        photo
-          |> Map.take(["filename", "content_type"])
-          |> Map.put("version", version)
-      %{"version" => version} ->
-        {"version" => version}
+  def update(id, %{"photo" => photo, "version" => version}, context) do
+
+    params = photo
+      |> Map.take([:filename, :content_type])
+      |> Map.put(:version, version)
+
+    result = _update(id, params, context)
+
+    if match? {_, {:ok, _}}, result do
+        save_file(photo, id)
     end
 
-    changeset = FileDB.changeset(file, params))
+    result
+  end
+
+  def update(id, %{"version" => version}, context) do
+    params = %{version: version}
+    _update(id, params, context)
+  end
+
+  defp _update(id, params, %{repo: repo} = context) do
+    files_path = Application.get_env(:garesco_server, :files_path)
+    file = get!(id, context)
+
+    changeset = FileDB.changeset(file, params)
     result = repo.update(changeset)
 
     {file, result}
   end
+
+  def save_file(photo, id) do
+    files_path = Application.get_env(:garesco_server, :files_path)
+    File.copy!(photo.path, "#{files_path}/#{id}")
+  end
   
   def raw(conn, id, %{plug_conn: plug_conn} = context) do
     files_path = Application.get_env(:garesco_server, :files_path)
-    file = get!(id, context)
+    file = get!(id, context)  
     conn
      |> plug_conn.put_resp_content_type(file.content_type)
      |> plug_conn.put_resp_header("filename", file.filename)

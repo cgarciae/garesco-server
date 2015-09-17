@@ -2,6 +2,7 @@ data:
   image: busybox
   volumes:
     - /data:/data
+    - /files:/files 
     - /c/Users/Cristian/Documents/Github/garesco-server:/server
 
 db:

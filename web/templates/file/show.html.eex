@@ -17,6 +17,8 @@
     <%= @file.version %>
   </li>
 
+  <img src="<%= file_path(@conn, :raw, @file)%>">
+
 </ul>
 
 <%= link "Edit", to: file_path(@conn, :edit, @file) %>
